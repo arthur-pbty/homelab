@@ -1,0 +1,7 @@
+# Exemple de fichier tfvars — NE PAS committer les vrais secrets
+pm_endpoint = "https://proxmox.example:8006/"
+pm_api_token = "user@pam!example_token"
+pm_api_secret = "<proxmox-secret>"
+target_node = "pve"
+debian_template_id = 9000
+ssh_public_key = "ssh-ed25519 AAAA... your public key ... user@host"
