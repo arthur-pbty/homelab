@@ -65,4 +65,3 @@ git push origin main
 
 Besoin d'aide ?
 - Je peux : créer le commit localement, lancer `pre-commit` et exécuter les commandes de validation; ou t'assister pour purger l'historique si nécessaire.
-

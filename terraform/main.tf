@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.5.0"
+
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
@@ -19,11 +21,11 @@ resource "proxmox_virtual_environment_vm" "test_vm" {
   node_name   = var.target_node
   vm_id       = 101
   description = "VM de test"
-  
+
   clone {
     vm_id = var.debian_template_id
   }
-  
+
   cpu {
     cores = 2
     type  = "host"
@@ -36,18 +38,18 @@ resource "proxmox_virtual_environment_vm" "test_vm" {
   memory {
     dedicated = 2048
   }
-  
+
   disk {
     datastore_id = "local-lvm"
     interface    = "scsi0"
     size         = 20
     file_format  = "raw"
   }
-  
+
   network_device {
     bridge = "vmbr0"
   }
-  
+
   initialization {
     user_account {
       username = "ansible"
