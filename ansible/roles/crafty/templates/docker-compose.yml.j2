@@ -3,7 +3,12 @@ services:
     image: registry.gitlab.com/crafty-controller/crafty-4:latest
     ports: ["8443:8443", "8123:8123", "25500-25600:25500-25600"]
     expose: ["8000"]
-    volumes: ["./data:/crafty"]
+    volumes:
+      - "./backups:/crafty/backups"
+      - "./logs:/crafty/logs"
+      - "./servers:/crafty/servers"
+      - "./config:/crafty/config"
+      - "./db:/crafty/db"
     networks: [homelab_proxy]
     labels:
       - "traefik.enable=true"
