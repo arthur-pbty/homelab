@@ -17,6 +17,11 @@ jobs:
         with:
           terraform_wrapper: false
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
       - name: Terraform fmt check
         run: terraform -chdir=terraform fmt -check -recursive
 
@@ -46,11 +51,11 @@ jobs:
         uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files
-
+      
       - name: Setup tfsec
         uses: aquasecurity/tfsec-action@v1.0.0
-        continue-on-error: true # Ne fait pas échouer la CI si le téléchargement de tfsec échoue
+        continue-on-error: true
 
       - name: Run tfsec
         run: tfsec terraform/ --soft-fail
-        continue-on-error: true # soft-fail = warning, ne fait pas échouer la CI
+        continue-on-error: true
