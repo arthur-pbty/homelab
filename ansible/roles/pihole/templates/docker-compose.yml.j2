@@ -7,7 +7,7 @@ services:
       - "53:53/udp"
       - "8083:80"
     environment:
-      - DNS1=127.0.0.1#5053
+      - PIHOLE_DNS_=127.0.0.1#5053
       - TZ=Europe/Paris
       - WEBPASSWORD={{ pihole_web_password }}
     volumes:

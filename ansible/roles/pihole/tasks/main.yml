@@ -43,40 +43,22 @@
     cmd: docker exec pihole pihole status
   register: pihole_status
   until: pihole_status.rc == 0
-  retries: 6
+  retries: 10
   delay: 5
   changed_when: false
 
-- name: Force set Pi-hole admin password
+- name: Force set Pi-hole admin password (v5 compat, may fail on v6 - env var handles it)
   ansible.builtin.command:
     cmd: "docker exec pihole pihole setpassword {{ pihole_web_password }}"
   changed_when: false
+  failed_when: false
 
-- name: Configure local DNS records (visible in UI)
-  ansible.builtin.copy:
-    dest: /opt/dns/pihole/custom.list
-    mode: "0644"
-    content: |
-      {{ groups['network'][0] }} pihole.{{ homelab_domain }}
-      {{ groups['media'][0] }} immich.{{ homelab_domain }}
-      {{ groups['media'][0] }} jellyfin.{{ homelab_domain }}
-      {{ groups['media'][0] }} navidrome.{{ homelab_domain }}
-      {{ groups['media'][0] }} gokapi.{{ homelab_domain }}
-      {{ groups['apps'][0] }} gitea.{{ homelab_domain }}
-      {{ groups['apps'][0] }} searxng.{{ homelab_domain }}
-      {{ groups['apps'][0] }} uptimekuma.{{ homelab_domain }}
-      {{ groups['apps'][0] }} radicale.{{ homelab_domain }}
-      {{ groups['apps'][0] }} joplin.{{ homelab_domain }}
-      {{ groups['apps'][0] }} shlink.{{ homelab_domain }}
-      {{ groups['apps'][0] }} speedtest.{{ homelab_domain }}
-      {{ groups['apps'][0] }} crafty.{{ homelab_domain }}
-  notify: Restart Pi-hole DNS
-
-- name: Add adblock lists to Pi-hole database (v6)
+- name: Add adblock lists to Pi-hole gravity database
   ansible.builtin.shell: |
-    docker exec pihole pihole-FTL sqlite3 /etc/pihole/gravity.db "INSERT OR IGNORE INTO adlist (address, type) VALUES ('{{ item }}', 0);"
+    docker exec pihole pihole-FTL sqlite3 /etc/pihole/gravity.db \
+      "INSERT OR IGNORE INTO adlist (address, type, enabled) VALUES ('{{ item }}', 0, 1); SELECT changes();"
   register: adlist_result
-  changed_when: false
+  changed_when: "adlist_result.stdout | trim == '1'"
   loop:
     - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
     - "https://v.firebog.net/hosts/AdguardDNS.txt"
@@ -86,6 +68,31 @@
     - "https://v.firebog.net/hosts/Prigent-Malware.txt"
     - "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/pro.txt"
   notify: Update Pi-hole Gravity
+
+- name: Add local DNS records to Pi-hole FTL database
+  ansible.builtin.shell: |
+    docker exec pihole pihole-FTL sqlite3 /etc/pihole/pihole-FTL.db \
+      "CREATE TABLE IF NOT EXISTS domain_mapping (ip TEXT NOT NULL, domain TEXT NOT NULL, PRIMARY KEY (ip, domain)); INSERT OR IGNORE INTO domain_mapping (ip, domain) VALUES ('{{ item.ip }}', '{{ item.host }}'); SELECT changes();"
+  register: dns_result
+  changed_when: "dns_result.stdout | trim == '1'"
+  loop:
+    - { ip: "{{ groups['network'][0] | trim }}", host: "pihole.{{ homelab_domain }}" }
+    - { ip: "{{ groups['media'][0] | trim }}",  host: "immich.{{ homelab_domain }}" }
+    - { ip: "{{ groups['media'][0] | trim }}",  host: "jellyfin.{{ homelab_domain }}" }
+    - { ip: "{{ groups['media'][0] | trim }}",  host: "navidrome.{{ homelab_domain }}" }
+    - { ip: "{{ groups['media'][0] | trim }}",  host: "gokapi.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "gitea.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "searxng.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "uptimekuma.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "radicale.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "joplin.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "shlink.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "speedtest.{{ homelab_domain }}" }
+    - { ip: "{{ groups['apps'][0] | trim }}",   host: "crafty.{{ homelab_domain }}" }
+  notify: Restart Pi-hole DNS
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
 
 - name: Display Pi-hole admin password
   ansible.builtin.debug:
