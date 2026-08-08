@@ -1,0 +1,39 @@
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:release
+    # On ne expose plus le port 2283 sur la machine hôte ! 
+    # Traefik s'en occupe via le réseau interne.
+    expose: ["2283"] 
+    volumes: ["./uploads:/usr/src/app/upload"]
+    environment:
+      - DB_HOSTNAME=immich-db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD={{ immich_db_password }}
+      - DB_DATABASE_NAME=immich
+      - REDIS_HOSTNAME=immich-redis
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.immich.rule=Host(`immich.{{ homelab_domain }}`)"
+      - "traefik.http.routers.immich.entrypoints=websecure"
+      - "traefik.http.routers.immich.tls.certresolver=letsencrypt"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
+    mem_limit: 384m
+    restart: unless-stopped
+  immich-redis:
+    image: redis:alpine
+    mem_limit: 128m
+    restart: unless-stopped
+  immich-db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: {{ immich_db_password }}
+      POSTGRES_USER: postgres
+      POSTGRES_DB: immich
+    volumes: ["./pgdata:/var/lib/postgresql/data"]
+    mem_limit: 256m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

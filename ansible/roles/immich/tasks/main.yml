@@ -1,0 +1,17 @@
+---
+- name: Create Immich directory
+  ansible.builtin.file:
+    path: /opt/immich
+    state: directory
+    mode: "0755"
+
+- name: Render Immich docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/immich/docker-compose.yml
+    mode: "0644"
+
+- name: Start Immich stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/immich
+    state: present
