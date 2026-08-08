@@ -1,9 +1,9 @@
 services:
   immich-server:
     image: ghcr.io/immich-app/immich-server:release
-    # On ne expose plus le port 2283 sur la machine hôte ! 
+    # On ne expose plus le port 2283 sur la machine hôte !
     # Traefik s'en occupe via le réseau interne.
-    expose: ["2283"] 
+    expose: ["2283"]
     volumes: ["./uploads:/usr/src/app/upload"]
     environment:
       - DB_HOSTNAME=immich-db
