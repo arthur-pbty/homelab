@@ -43,23 +43,16 @@ variable "gateway" {
   default     = "192.168.1.1"
 }
 
-# --- VM 1 : Network ---
-variable "vm_network_ip" {
-  description = "IP de la VM Network (format CIDR)"
-  type        = string
-  default     = "192.168.1.11/24"
-}
-
-# --- VM 2 : Media ---
-variable "vm_media_ip" {
-  description = "IP de la VM Media (format CIDR)"
-  type        = string
-  default     = "192.168.1.12/24"
-}
-
-# --- VM 3 : Apps ---
-variable "vm_apps_ip" {
-  description = "IP de la VM Apps (format CIDR)"
-  type        = string
-  default     = "192.168.1.13/24"
+# --- Configuration des VMs (Boucle for_each) ---
+variable "vms" {
+  description = "Configuration des différentes VMs à déployer"
+  type = map(object({
+    vm_id       = number
+    name        = string
+    description = string
+    ip_address  = string
+    cores       = number
+    memory      = number
+    disk_size   = number
+  }))
 }

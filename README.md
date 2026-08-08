@@ -1,6 +1,6 @@
 # Homelab - Infrastructure as Code
 
-Déploiement automatisé de 3 VMs Proxmox (Réseau, Média, Applications) et configuration de tous les services via Docker via Terraform et Ansible.
+Déploiement automatisé de 3 VMs Proxmox (Réseau, Média, Applications) et configuration de tous les services (Docker) via Terraform et Ansible.
 
 ## Prérequis
 - Terraform >= 1.5.0

@@ -1,14 +1,10 @@
-output "vm_network_ip" {
-  description = "IP de la VM Network"
-  value       = var.vm_network_ip
-}
-
-output "vm_media_ip" {
-  description = "IP de la VM Media"
-  value       = var.vm_media_ip
-}
-
-output "vm_apps_ip" {
-  description = "IP de la VM Apps"
-  value       = var.vm_apps_ip
+output "deployed_vms" {
+  description = "Récapitulatif des VMs déployées (Nom, ID, IP)"
+  value = {
+    for k, vm in proxmox_virtual_environment_vm.vm : k => {
+      id   = vm.id
+      name = vm.name
+      ip   = var.vms[k].ip_address
+    }
+  }
 }
