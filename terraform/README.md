@@ -1,38 +1,15 @@
-# Terraform — notes et bonnes pratiques
+# Terraform
 
-- `variables.tf` doit contenir uniquement les déclarations de variables (sans secrets par défaut). Ne commitez pas de valeurs sensibles.
-- Fournissez les valeurs locales dans un fichier `terraform.tfvars` (ignoré) ou via variables d'environnement / backend sécurisé.
+Provisionne 3 VMs Debian/Ubuntu sur Proxmox VE (Network, Media, Apps).
 
-Recommandations
-- Conserver `variables.tf` dans le dépôt pour documenter les variables attendues.
-- Inclure un fichier d'exemple `terraform.tfvars.example` (fourni) que chaque contributeur copie en `terraform.tfvars` local.
+## Utilisation
+1. Copiez `terraform.tfvars.example` en `terraform.tfvars` et renseignez vos valeurs.
+2. Initialisez Terraform : `terraform init`
+3. Vérifiez le plan : `terraform plan`
+4. Appliquez : `terraform apply`
 
-Backend d'état
-- En production, configurez un backend distant (S3, GCS, Terraform Cloud) pour stocker l'état :
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "my-terraform-state"
-    key    = "homelab/terraform.tfstate"
-    region = "eu-west-1"
-  }
-}
-```
-
-Validation locale
-
-```bash
-cd terraform
-terraform init            # si backend configuré, vérifier les credentials
-terraform validate
-terraform plan -var-file=terraform.tfvars
-terraform apply -var-file=terraform.tfvars
-```
-
-Sécurité
-- Marquez les variables sensibles avec `sensitive = true` dans `variables.tf` quand possible.
-- Préférez l'utilisation d'un secret manager (Vault, AWS Secrets Manager, etc.) plutôt que de stocker des secrets en clair.
-
-Notes spécifiques
-- Le provider Proxmox utilisé dans ce dépôt peut exiger la concaténation d'un `token_id` et d'un `token_secret` selon la version ; vérifiez la documentation du provider avant d'automatiser la distribution des tokens.
+## Fichiers principaux
+- `providers.tf` : Configuration du provider Proxmox.
+- `variables.tf` : Déclaration des variables.
+- `main.tf` : Ressources des 3 VMs (CPU, RAM, IP, Clone).
+- `outputs.tf` : Sorties utiles (IPs des VMs).

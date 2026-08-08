@@ -1,67 +1,47 @@
-# homelab — Infrastructure-as-Code
+# Homelab - Infrastructure as Code
 
-Ce dépôt contient des configurations Terraform et Ansible destinées à déployer et configurer un homelab.
+Déploiement automatisé de 3 VMs Proxmox (Réseau, Média, Applications) et configuration de tous les services via Docker via Terraform et Ansible.
 
-Objectif
-- Préparer le dépôt pour publication publique en respectant les bonnes pratiques : ne pas committer de secrets, ajouter des contrôles automatiques, fournir des exemples et une documentation claire.
+## Prérequis
+- Terraform >= 1.5.0
+- Ansible
+- Un serveur Proxmox VE avec un template Debian/Ubuntu (ex: ID 9000)
+- Une clé SSH publique
 
-Structure principale
-- `terraform/` : code Terraform (providers, ressources).
-- `ansible/` : playbooks, rôles et exemples d'inventaire.
-- `.github/workflows/ci.yml` : pipeline CI pour checks (format, validate, ansible-lint, pre-commit).
-- `.pre-commit-config.yaml` : hooks locaux à exécuter avant les commits.
+## Structure du projet
+- `terraform/` : Provisionne les 3 VMs sur Proxmox.
+- `ansible/` : Configure l'OS, installe Docker et déploie les conteneurs.
+- `.github/workflows/` : Vérifications automatiques (lint, formatage).
 
-Gestion des secrets — règles simples
-- Ne commitez jamais de secrets (tokens, mots de passe, clés privées).
-- Déclarez vos variables dans `terraform/variables.tf` (dans le dépôt) et fournissez les valeurs sensibles via un fichier `terraform/terraform.tfvars` local (ignoré) ou via un backend/secret manager.
-- Pour Ansible, stockez les secrets chiffrés avec `ansible-vault` dans `group_vars`/`host_vars`.
+## Démarrage rapide
 
-Utilisation recommandée — Terraform
-1. Copier l'exemple de variables :
-
-```bash
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# remplir terraform/terraform.tfvars avec vos valeurs locales (ne pas committer)
-```
-
-2. Initialiser et valider :
-
+### 1. Provisionner l'infrastructure (Terraform)
+Allez dans le dossier `terraform/`, copiez le fichier d'exemple et renseignez vos valeurs Proxmox :
 ```bash
 cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Éditez terraform.tfvars avec vos identifiants Proxmox et IPs souhaitées
+```
+Initialisez et appliquez la configuration :
+```bash
 terraform init
-terraform validate
-terraform plan -var-file=terraform.tfvars
-terraform apply -var-file=terraform.tfvars
+terraform plan
+terraform apply
 ```
 
-Remarque : en production, configurez un backend distant (S3, GCS, Terraform Cloud) pour stocker l'état Terraform de façon sécurisée.
-
-Utilisation recommandée — Ansible
-- Utiliser `ansible/inventory.ini.example` comme modèle et ne pas committer l'inventaire réel.
-- Chiffrer les données sensibles :
-
+### 2. Configurer les VMs (Ansible)
+De retour à la racine, créez votre inventaire Ansible à partir de l'exemple :
 ```bash
-ansible-vault encrypt ansible/group_vars/all/vault.yml
-ansible-playbook playbook.yml --ask-vault-pass
+cp ansible/inventory.ini.example ansible/inventory.ini
+# Vérifiez les IPs dans ansible/inventory.ini
 ```
-
-Qualité et automatisation
-- Installer les hooks locaux : `pre-commit install`.
-- Le pipeline CI exécute les vérifications automatiques lors de `push`/`pull_request`.
-
-Nettoyage d'un historique contenant des secrets
-- Si des secrets ont déjà été poussés, il faut réécrire l'historique (`git filter-repo` ou BFG). C'est une opération disruptive : coordonner avec les contributeurs avant de la lancer.
-
-Publication
-1. Vérifier qu'aucun fichier sensible n'est présent.
-2. S'assurer que `.gitignore` contient les patterns appropriés (`*.tfstate`, `*.tfvars`, etc.).
-3. Commit et push :
-
+Lancez le playbook Ansible :
 ```bash
-git add .
-git commit -m "chore: prepare repo for public release — remove secrets, add CI and docs"
-git push origin main
+cd ansible
+ansible-playbook -i inventory.ini playbook.yml
 ```
+Les VMs sont prêtes et tous les services Docker sont démarrés.
 
-Besoin d'aide ?
-- Je peux : créer le commit localement, lancer `pre-commit` et exécuter les commandes de validation; ou t'assister pour purger l'historique si nécessaire.
+## Sécurité
+- **Ne committez jamais** les fichiers `terraform.tfvars` ou `ansible/inventory.ini` (ignorés par défaut).
+- Pensez à éditer le playbook Ansible pour remplacer `ton@email.com` et `TOKEN_GITEA` par vos vraies valeurs.

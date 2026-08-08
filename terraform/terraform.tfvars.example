@@ -1,7 +1,18 @@
-# Exemple de fichier tfvars — NE PAS committer les vrais secrets
-pm_endpoint = "https://proxmox.example:8006/"
-pm_api_token = "user@pam!example_token"
-pm_api_secret = "<proxmox-secret>"
-target_node = "pve"
-debian_template_id = 9000
-ssh_public_key = "ssh-ed25519 AAAA... your public key ... user@host"
+# --- Proxmox ---
+pm_endpoint           = "https://proxmox.example:8006/"
+pm_api_token          = "user@pam!example_token"
+pm_api_secret         = "<proxmox-secret>"
+pm_insecure           = true
+target_node           = "pve"
+
+# --- Template & SSH ---
+debian_template_id    = 9000
+ssh_public_key        = "ssh-ed25519 AAAA... votre clé publique ... user@host"
+
+# --- Réseau ---
+gateway               = "192.168.1.1"
+
+# --- IPs des VMs ---
+vm_network_ip         = "192.168.1.11/24"
+vm_media_ip           = "192.168.1.12/24"
+vm_apps_ip            = "192.168.1.13/24"

@@ -1,33 +1,65 @@
+# --- Proxmox ---
 variable "pm_endpoint" {
-  description = "URL de l'API Proxmox (ex: https://proxmox.example:8006/)"
+  description = "URL de l'API Proxmox"
   type        = string
 }
 
-# Format: utilisateur@pve!nom_du_token
 variable "pm_api_token" {
-  description = "Token Proxmox (format user@pam!token_name). Ne pas committer."
-  type        = string
-}
-
-variable "pm_api_secret" {
-  description = "Secret Proxmox associé au token. Ne pas committer."
+  description = "ID du token API Proxmox"
   type        = string
   sensitive   = true
 }
 
-variable "target_node" {
-  description = "Nom du nœud Proxmox cible"
+variable "pm_api_secret" {
+  description = "Secret du token API Proxmox"
   type        = string
-  default     = "pve"
+  sensitive   = true
+}
+
+variable "pm_insecure" {
+  description = "Désactiver la vérification TLS"
+  type        = bool
+  default     = true
+}
+
+variable "target_node" {
+  description = "Nom du noeud Proxmox cible"
+  type        = string
 }
 
 variable "debian_template_id" {
-  description = "ID du template Debian à cloner"
+  description = "ID du template Proxmox à cloner"
   type        = number
-  default     = 9000
 }
 
 variable "ssh_public_key" {
-  description = "Clé publique SSH à injecter dans la VM"
+  description = "Clé publique SSH à injecter dans les VMs"
   type        = string
+}
+
+variable "gateway" {
+  description = "Passerelle par défaut du réseau"
+  type        = string
+  default     = "192.168.1.1"
+}
+
+# --- VM 1 : Network ---
+variable "vm_network_ip" {
+  description = "IP de la VM Network (format CIDR)"
+  type        = string
+  default     = "192.168.1.11/24"
+}
+
+# --- VM 2 : Media ---
+variable "vm_media_ip" {
+  description = "IP de la VM Media (format CIDR)"
+  type        = string
+  default     = "192.168.1.12/24"
+}
+
+# --- VM 3 : Apps ---
+variable "vm_apps_ip" {
+  description = "IP de la VM Apps (format CIDR)"
+  type        = string
+  default     = "192.168.1.13/24"
 }

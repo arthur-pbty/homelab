@@ -1,9 +1,9 @@
 ---
 # ==========================================
-# 1. CONFIGURATION DE LA VM DE TEST
+# 1. CONFIGURATION COMMUNE (Network, Media, Apps)
 # ==========================================
 - name: Setup Base OS & Docker
-  hosts: test_vm
+  hosts: debian_vms
   become: true
   tasks:
     - name: Install prerequisites for Docker repo
@@ -12,14 +12,21 @@
         state: present
         update_cache: true
 
+    - name: Create keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
     - name: Add Docker official GPG key
-      ansible.builtin.apt_key:
+      ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
 
     - name: Add Docker repository
       ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
 
     - name: Install Docker Engine and Compose plugin
@@ -36,17 +43,51 @@
         daemon_reload: true
 
 # ==========================================
-# 2. DEPLOIEMENT D'UN SERVICE DE TEST
+# 2. NET & PROXY (192.168.1.11)
 # ==========================================
-- name: Deploy Traefik
-  hosts: test_vm
+- name: Deploy Network & Proxy Services
+  hosts: network
   become: true
   tasks:
+    - name: Stop and disable systemd-resolved to free port 53
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: stopped
+        enabled: false
+
+    - name: Create a proper resolv.conf
+      ansible.builtin.copy:
+        dest: /etc/resolv.conf
+        mode: "0644"
+        content: |
+          nameserver 8.8.8.8
+          nameserver 1.1.1.1
+
     - name: Create Traefik directory
       ansible.builtin.file:
         path: /opt/traefik
         state: directory
         mode: "0755"
+
+    - name: Create Traefik static config
+      ansible.builtin.copy:
+        dest: /opt/traefik/traefik.yml
+        mode: "0644"
+        content: |
+          api: { dashboard: true, insecure: true }
+          entryPoints:
+            web: { address: ":80", http: { redirections: { entryPoint: { to: websecure, scheme: https } } } }
+            websecure: { address: ":443" }
+          providers: { docker: { endpoint: "unix:///var/run/docker.sock", exposedByDefault: false } }
+          certificatesResolvers:
+            letsencrypt:
+              acme: { email: "ton@email.com", storage: "/acme.json", httpChallenge: { entryPoint: web } }
+
+    - name: Create acme.json with correct permissions
+      ansible.builtin.file:
+        path: /opt/traefik/acme.json
+        state: touch
+        mode: "0600"
 
     - name: Copy Traefik docker-compose file
       ansible.builtin.copy:
@@ -56,13 +97,261 @@
           services:
             traefik:
               image: traefik:v3.0
-              ports: ["80:80", "8080:8080"]
+              ports: ["80:80", "443:443", "8080:8080"]
               volumes:
                 - /var/run/docker.sock:/var/run/docker.sock:ro
                 - ./traefik.yml:/etc/traefik/traefik.yml:ro
+                - ./acme.json:/acme.json
+              mem_limit: 256m
               restart: unless-stopped
 
-    - name: Deploy Traefik Container
+    - name: Create Pi-hole directory
+      ansible.builtin.file:
+        path: /opt/dns
+        state: directory
+        mode: "0755"
+
+    - name: Copy Pi-hole docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/dns/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            pihole:
+              image: pihole/pihole:latest
+              ports: ["53:53/tcp", "53:53/udp"]
+              environment:
+                - DNS1=127.0.0.1#5053
+                - TZ=Europe/Paris
+              volumes: ["./pihole:/etc/pihole", "./dnsmasq:/etc/dnsmasq.d"]
+              mem_limit: 128m
+              restart: unless-stopped
+            unbound:
+              image: mvance/unbound:latest
+              ports: ["5053:53/tcp", "5053:53/udp"]
+              mem_limit: 64m
+              restart: unless-stopped
+
+    - name: Start Network stacks
       community.docker.docker_compose_v2:
-        project_src: /opt/traefik
+        project_src: "{{ item }}"
         state: present
+      loop: [/opt/traefik, /opt/dns]
+
+# ==========================================
+# 3. MEDIA & FICHIERS (192.168.1.12)
+# ==========================================
+- name: Deploy Media Services
+  hosts: media
+  become: true
+  tasks:
+    - name: Create Media app directories
+      ansible.builtin.file:
+        path: "/opt/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [immich, jellyfin, navidrome, gokapi]
+
+    - name: Copy Immich docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/immich/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            immich-server:
+              image: ghcr.io/immich-app/immich-server:release
+              ports: ["2283:2283"]
+              volumes: ["./uploads:/usr/src/app/upload"]
+              environment:
+                - DB_HOSTNAME=immich-db
+                - DB_USERNAME=postgres
+                - DB_PASSWORD=immich_pwd
+                - DB_DATABASE_NAME=immich
+                - REDIS_HOSTNAME=immich-redis
+              mem_limit: 384m
+              restart: unless-stopped
+            immich-redis:
+              image: redis:alpine
+              mem_limit: 128m
+              restart: unless-stopped
+            immich-db:
+              image: postgres:16
+              environment:
+                POSTGRES_PASSWORD: immich_pwd
+                POSTGRES_USER: postgres
+                POSTGRES_DB: immich
+              volumes: ["./pgdata:/var/lib/postgresql/data"]
+              mem_limit: 256m
+              restart: unless-stopped
+
+    - name: Copy Jellyfin docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/jellyfin/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            jellyfin:
+              image: lscr.io/linuxserver/jellyfin:latest
+              ports: ["8096:8096"]
+              volumes: ["./media:/data/media", "./config:/config"]
+              mem_limit: 512m
+              restart: unless-stopped
+
+    - name: Copy Navidrome docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/navidrome/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            navidrome:
+              image: deluan/navidrome:latest
+              ports: ["4533:4533"]
+              volumes: ["./music:/music", "./data:/data"]
+              mem_limit: 128m
+              restart: unless-stopped
+
+    - name: Copy Gokapi docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/gokapi/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            gokapi:
+              image: f0rc3/gokapi:latest
+              ports: ["53842:53842"]
+              volumes: ["./data:/app/data", "./config:/app/config"]
+              mem_limit: 64m
+              restart: unless-stopped
+
+    - name: Start Media stacks
+      community.docker.docker_compose_v2:
+        project_src: "{{ item }}"
+        state: present
+      loop: [/opt/immich, /opt/jellyfin, /opt/navidrome, /opt/gokapi]
+
+# ==========================================
+# 4. APPS, DEV & GAMING (192.168.1.13)
+# ==========================================
+- name: Deploy Apps, Dev & Gaming Services
+  hosts: apps
+  become: true
+  tasks:
+    - name: Create Apps directories
+      ansible.builtin.file:
+        path: "/opt/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [gitea, searxng, uptimekuma, radicale, joplin, shlink, speedtest, crafty]
+
+    - name: Copy Gitea docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/gitea/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            gitea:
+              image: gitea/gitea:latest
+              ports: ["3000:3000", "2222:22"]
+              volumes: ["./data:/data"]
+              mem_limit: 256m
+              restart: unless-stopped
+            runner:
+              image: gitea/act_runner:latest
+              environment:
+                - GITEA_INSTANCE_URL=http://gitea:3000
+                - GITEA_RUNNER_REGISTRATION_TOKEN=TOKEN_GITEA
+              volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+              mem_limit: 256m
+              restart: unless-stopped
+
+    - name: Copy Searxng docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/searxng/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            searxng:
+              image: searxng/searxng:latest
+              ports: ["8080:8080"]
+              mem_limit: 128m
+              restart: unless-stopped
+
+    - name: Copy Uptime Kuma docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/uptimekuma/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            uptime-kuma:
+              image: louislam/uptime-kuma:1
+              ports: ["3001:3001"]
+              volumes: ["./data:/app/data"]
+              mem_limit: 64m
+              restart: unless-stopped
+
+    - name: Copy Radicale docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/radicale/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            radicale:
+              image: tomsquest/docker-radicale
+              ports: ["5232:5232"]
+              mem_limit: 64m
+              restart: unless-stopped
+
+    - name: Copy Joplin docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/joplin/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            joplin:
+              image: joplin/server:latest
+              ports: ["22300:22300"]
+              mem_limit: 256m
+              restart: unless-stopped
+
+    - name: Copy Shlink docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/shlink/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            shlink:
+              image: shlinkio/shlink:stable
+              ports: ["8081:8080"]
+              mem_limit: 128m
+              restart: unless-stopped
+
+    - name: Copy Speedtest docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/speedtest/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            speedtest-tracker:
+              image: lscr.io/linuxserver/speedtest-tracker:latest
+              ports: ["8082:80"]
+              mem_limit: 64m
+              restart: unless-stopped
+
+    - name: Copy Crafty docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/crafty/docker-compose.yml
+        mode: "0644"
+        content: |
+          services:
+            crafty:
+              image: registry.gitlab.com/crafty-controller/crafty-4:latest
+              ports: ["8000:8000", "8443:8443", "8123:8123", "25500-25600:25500-25600"]
+              volumes: ["./data:/crafty"]
+              mem_limit: 256m
+              restart: unless-stopped
+
+    - name: Start Apps stacks
+      community.docker.docker_compose_v2:
+        project_src: "{{ item }}"
+        state: present
+      loop: [/opt/gitea, /opt/searxng, /opt/uptimekuma, /opt/radicale, /opt/joplin, /opt/shlink, /opt/speedtest, /opt/crafty]
