@@ -67,12 +67,12 @@
     - "https://v.firebog.net/hosts/Prigent-Ads.txt"
     - "https://v.firebog.net/hosts/Prigent-Malware.txt"
     - "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/pro.txt"
-  notify: Update Pi-hole Gravity
 
+# FIX v6 : Ajout de la colonne 'id' pour correspondre au schéma attendu par FTL
 - name: Add local DNS records to Pi-hole FTL database
   ansible.builtin.shell: |
     docker exec pihole pihole-FTL sqlite3 /etc/pihole/pihole-FTL.db \
-      "CREATE TABLE IF NOT EXISTS domain_mapping (ip TEXT NOT NULL, domain TEXT NOT NULL, PRIMARY KEY (ip, domain)); INSERT OR IGNORE INTO domain_mapping (ip, domain) VALUES ('{{ item.ip }}', '{{ item.host }}'); SELECT changes();"
+      "CREATE TABLE IF NOT EXISTS domain_mapping (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT NOT NULL, domain TEXT NOT NULL, UNIQUE(ip, domain)); INSERT OR IGNORE INTO domain_mapping (ip, domain) VALUES ('{{ item.ip }}', '{{ item.host }}'); SELECT changes();"
   register: dns_result
   changed_when: "dns_result.stdout | trim == '1'"
   loop:
@@ -90,6 +90,12 @@
     - { ip: "{{ groups['apps'][0] | trim }}",   host: "speedtest.{{ homelab_domain }}" }
     - { ip: "{{ groups['apps'][0] | trim }}",   host: "crafty.{{ homelab_domain }}" }
   notify: Restart Pi-hole DNS
+
+# FIX : On force la mise à jour des listes (pihole -g) à chaque exécution
+- name: Force update Pi-hole Gravity
+  ansible.builtin.command:
+    cmd: docker exec pihole pihole -g
+  changed_when: false
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
