@@ -1,17 +1,6 @@
 services:
   searxng:
     image: searxng/searxng:latest
-    expose: ["8080"]
-    networks: [homelab_proxy]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.searxng.rule=Host(`searxng.{{ homelab_domain }}`)"
-      - "traefik.http.routers.searxng.entrypoints=websecure"
-      - "traefik.http.routers.searxng.tls.certresolver=letsencrypt"
-      - "traefik.http.services.searxng.loadbalancer.server.port=8080"
+    ports: ["8080:8080"]
     mem_limit: 128m
     restart: unless-stopped
-
-networks:
-  homelab_proxy:
-    external: true

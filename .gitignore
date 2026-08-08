@@ -34,3 +34,4 @@ ansible/inventory.ini
 .env
 .env.*
 secrets.*
+ansible/.pihole_pass.txt

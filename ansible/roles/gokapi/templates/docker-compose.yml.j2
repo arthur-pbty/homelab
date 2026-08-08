@@ -1,18 +1,7 @@
 services:
   gokapi:
     image: f0rc3/gokapi:latest
-    expose: ["53842"]
+    ports: ["53842:53842"]
     volumes: ["./data:/app/data", "./config:/app/config"]
-    networks: [homelab_proxy]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.gokapi.rule=Host(`gokapi.{{ homelab_domain }}`)"
-      - "traefik.http.routers.gokapi.entrypoints=websecure"
-      - "traefik.http.routers.gokapi.tls.certresolver=letsencrypt"
-      - "traefik.http.services.gokapi.loadbalancer.server.port=53842"
     mem_limit: 64m
     restart: unless-stopped
-
-networks:
-  homelab_proxy:
-    external: true

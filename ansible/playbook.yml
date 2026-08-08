@@ -21,8 +21,8 @@
   vars_files:
     - vault/secrets.yml
   roles:
-    - role: traefik
-    - role: pihole      # <--- Hop, plus aucune tâche indépendante !
+    - role: caddy
+    - role: pihole
 
 # ==========================================
 # 3. MEDIA & FICHIERS (192.168.1.12)

@@ -13,11 +13,19 @@
       nameserver 8.8.8.8
       nameserver 1.1.1.1
 
-- name: Create Pi-hole directory
+- name: Create Pi-hole directories
   ansible.builtin.file:
-    path: /opt/dns
+    path: "{{ item }}"
     state: directory
     mode: "0755"
+  loop:
+    - /opt/dns
+    - /opt/dns/pihole
+    - /opt/dns/dnsmasq
+
+- name: Generate Pi-hole admin password
+  ansible.builtin.set_fact:
+    pihole_web_password: "{{ lookup('password', playbook_dir ~ '/.pihole_pass.txt length=16 chars=ascii_letters,digits') }}"
 
 - name: Render Pi-hole docker-compose file
   ansible.builtin.template:
@@ -29,3 +37,56 @@
   community.docker.docker_compose_v2:
     project_src: /opt/dns
     state: present
+
+- name: Wait for Pi-hole to be ready
+  ansible.builtin.command:
+    cmd: docker exec pihole pihole status
+  register: pihole_status
+  until: pihole_status.rc == 0
+  retries: 6
+  delay: 5
+  changed_when: false
+
+- name: Force set Pi-hole admin password
+  ansible.builtin.command:
+    cmd: "docker exec pihole pihole setpassword {{ pihole_web_password }}"
+  changed_when: false
+
+- name: Configure local DNS records (visible in UI)
+  ansible.builtin.copy:
+    dest: /opt/dns/pihole/custom.list
+    mode: "0644"
+    content: |
+      {{ groups['network'][0] }} pihole.{{ homelab_domain }}
+      {{ groups['media'][0] }} immich.{{ homelab_domain }}
+      {{ groups['media'][0] }} jellyfin.{{ homelab_domain }}
+      {{ groups['media'][0] }} navidrome.{{ homelab_domain }}
+      {{ groups['media'][0] }} gokapi.{{ homelab_domain }}
+      {{ groups['apps'][0] }} gitea.{{ homelab_domain }}
+      {{ groups['apps'][0] }} searxng.{{ homelab_domain }}
+      {{ groups['apps'][0] }} uptimekuma.{{ homelab_domain }}
+      {{ groups['apps'][0] }} radicale.{{ homelab_domain }}
+      {{ groups['apps'][0] }} joplin.{{ homelab_domain }}
+      {{ groups['apps'][0] }} shlink.{{ homelab_domain }}
+      {{ groups['apps'][0] }} speedtest.{{ homelab_domain }}
+      {{ groups['apps'][0] }} crafty.{{ homelab_domain }}
+  notify: Restart Pi-hole DNS
+
+- name: Add adblock lists to Pi-hole database (v6)
+  ansible.builtin.shell: |
+    docker exec pihole pihole-FTL sqlite3 /etc/pihole/gravity.db "INSERT OR IGNORE INTO adlist (address, type) VALUES ('{{ item }}', 0);"
+  register: adlist_result
+  changed_when: false
+  loop:
+    - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+    - "https://v.firebog.net/hosts/AdguardDNS.txt"
+    - "https://v.firebog.net/hosts/Easylist.txt"
+    - "https://v.firebog.net/hosts/Easyprivacy.txt"
+    - "https://v.firebog.net/hosts/Prigent-Ads.txt"
+    - "https://v.firebog.net/hosts/Prigent-Malware.txt"
+    - "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/pro.txt"
+  notify: Update Pi-hole Gravity
+
+- name: Display Pi-hole admin password
+  ansible.builtin.debug:
+    msg: "🔑 Ton mot de passe Pi-hole est : {{ pihole_web_password }}"

@@ -1,0 +1,23 @@
+---
+- name: Create Caddy directory
+  ansible.builtin.file:
+    path: /opt/caddy
+    state: directory
+    mode: "0755"
+
+- name: Render Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /opt/caddy/Caddyfile
+    mode: "0644"
+
+- name: Render Caddy docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/caddy/docker-compose.yml
+    mode: "0644"
+
+- name: Start Caddy stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/caddy
+    state: present

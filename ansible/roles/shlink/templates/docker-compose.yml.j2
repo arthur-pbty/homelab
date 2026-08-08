@@ -1,17 +1,6 @@
 services:
   shlink:
     image: shlinkio/shlink:stable
-    expose: ["8080"]
-    networks: [homelab_proxy]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.shlink.rule=Host(`shlink.{{ homelab_domain }}`)"
-      - "traefik.http.routers.shlink.entrypoints=websecure"
-      - "traefik.http.routers.shlink.tls.certresolver=letsencrypt"
-      - "traefik.http.services.shlink.loadbalancer.server.port=8080"
+    ports: ["8081:8080"]
     mem_limit: 128m
     restart: unless-stopped
-
-networks:
-  homelab_proxy:
-    external: true

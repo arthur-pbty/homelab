@@ -1,15 +1,23 @@
 services:
   pihole:
     image: pihole/pihole:latest
-    ports: ["53:53/tcp", "53:53/udp"]
+    container_name: pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8083:80"
     environment:
       - DNS1=127.0.0.1#5053
       - TZ=Europe/Paris
-    volumes: ["./pihole:/etc/pihole", "./dnsmasq:/etc/dnsmasq.d"]
+      - WEBPASSWORD={{ pihole_web_password }}
+    volumes:
+      - "./pihole:/etc/pihole"
+      - "./dnsmasq:/etc/dnsmasq.d"
     mem_limit: 128m
     restart: unless-stopped
   unbound:
     image: mvance/unbound:latest
+    container_name: unbound
     ports: ["5053:53/tcp", "5053:53/udp"]
     mem_limit: 64m
     restart: unless-stopped

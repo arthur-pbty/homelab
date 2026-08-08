@@ -1,0 +1,55 @@
+{
+    email {{ letsencrypt_email }}
+}
+
+pihole.{{ homelab_domain }} {
+    reverse_proxy {{ groups['network'][0] | trim }}:8083
+}
+
+crafty.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:8000
+}
+
+gitea.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:3000
+}
+
+gokapi.{{ homelab_domain }} {
+    reverse_proxy {{ groups['media'][0] | trim }}:53842
+}
+
+immich.{{ homelab_domain }} {
+    reverse_proxy {{ groups['media'][0] | trim }}:2283
+}
+
+jellyfin.{{ homelab_domain }} {
+    reverse_proxy {{ groups['media'][0] | trim }}:8096
+}
+
+joplin.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:22300
+}
+
+navidrome.{{ homelab_domain }} {
+    reverse_proxy {{ groups['media'][0] | trim }}:4533
+}
+
+radicale.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:5232
+}
+
+searxng.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:8080
+}
+
+shlink.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:8081
+}
+
+speedtest.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:8082
+}
+
+uptimekuma.{{ homelab_domain }} {
+    reverse_proxy {{ groups['apps'][0] | trim }}:3001
+}
