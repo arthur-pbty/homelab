@@ -52,12 +52,12 @@ variable "vms" {
     description = string
     ip_address  = string
     # Les champs suivants sont optionnels et ont des valeurs par défaut
-    cores       = optional(number, 2)
-    memory      = optional(number, 2048)
-    disk_size   = optional(number, 20)
-    datastore   = optional(string, "local-lvm")
-    bridge      = optional(string, "vmbr0")
-    tags        = optional(list(string), ["homelab"])
+    cores     = optional(number, 2)
+    memory    = optional(number, 2048)
+    disk_size = optional(number, 20)
+    datastore = optional(string, "local-lvm")
+    bridge    = optional(string, "vmbr0")
+    tags      = optional(list(string), ["homelab"])
   }))
 
   # Validation : on s'assure que l'IP contient bien un masque CIDR (ex: /24)

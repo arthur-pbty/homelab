@@ -41,7 +41,7 @@ jobs:
         uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files
-      
+
       - name: Setup tfsec
         uses: aquasecurity/tfsec-action@v1.0.0
 

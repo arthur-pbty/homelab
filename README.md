@@ -9,9 +9,9 @@ Déploiement automatisé de 3 VMs Proxmox (Réseau, Média, Applications) et con
 - Une clé SSH publique
 
 ## Structure du projet
-- `terraform/` : Provisionne les 3 VMs sur Proxmox.
+- `terraform/` : Provisionne les 3 VMs sur Proxmox et génère l'inventaire Ansible.
 - `ansible/` : Configure l'OS, installe Docker et déploie les conteneurs.
-- `.github/workflows/` : Vérifications automatiques (lint, formatage).
+- `.github/workflows/` : Vérifications automatiques (lint, formatage, sécurité).
 
 ## Démarrage rapide
 
@@ -28,14 +28,10 @@ terraform init
 terraform plan
 terraform apply
 ```
+*Note : À la fin de l'application, Terraform génère automatiquement le fichier `ansible/inventory.ini` avec les bonnes IPs.*
 
 ### 2. Configurer les VMs (Ansible)
-De retour à la racine, créez votre inventaire Ansible à partir de l'exemple :
-```bash
-cp ansible/inventory.ini.example ansible/inventory.ini
-# Vérifiez les IPs dans ansible/inventory.ini
-```
-Lancez le playbook Ansible :
+De retour à la racine, vous n'avez plus besoin de créer l'inventaire, lancez simplement le playbook :
 ```bash
 cd ansible
 ansible-playbook -i inventory.ini playbook.yml
