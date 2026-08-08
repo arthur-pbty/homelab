@@ -5,6 +5,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
   node_name   = var.target_node
   vm_id       = each.value.vm_id
   description = each.value.description
+  tags        = each.value.tags
 
   clone {
     vm_id = var.debian_template_id
@@ -24,14 +25,14 @@ resource "proxmox_virtual_environment_vm" "vm" {
   }
 
   disk {
-    datastore_id = "local-lvm"
+    datastore_id = each.value.datastore
     interface    = "scsi0"
     size         = each.value.disk_size
     file_format  = "raw"
   }
 
   network_device {
-    bridge = "vmbr0"
+    bridge = each.value.bridge
   }
 
   initialization {
@@ -46,4 +47,12 @@ resource "proxmox_virtual_environment_vm" "vm" {
       }
     }
   }
+}
+
+# Génération dynamique de l'inventaire Ansible
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/../ansible/inventory.ini"
+  content = templatefile("${path.module}/inventory.tftpl", {
+    vms = var.vms
+  })
 }

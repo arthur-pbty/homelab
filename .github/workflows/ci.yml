@@ -41,3 +41,9 @@ jobs:
         uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files
+      
+      - name: Setup tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+
+      - name: Run tfsec
+        run: tfsec terraform/ --soft-fail # soft-fail = warning, ne fait pas échouer la CI

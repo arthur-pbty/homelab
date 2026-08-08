@@ -1,0 +1,12 @@
+# Cet inventory a été généré automatiquement par Terraform. Ne pas modifier à la main.
+
+[debian_vms]
+%{ for k, vm in vms ~}
+ ${split("/", vm.ip_address)[0]} ansible_user=ansible
+%{ endfor ~}
+
+%{ for k, vm in vms ~}
+[${k}]
+ ${split("/", vm.ip_address)[0]} ansible_user=ansible
+
+%{ endfor ~}

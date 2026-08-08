@@ -19,7 +19,6 @@ vms = {
     name        = "srv-network"
     description = "Traefik, Pihole, Unbound"
     ip_address  = "192.168.1.11/24"
-    cores       = 3
     memory      = 1024
     disk_size   = 10
   }
@@ -28,17 +27,15 @@ vms = {
     name        = "srv-media"
     description = "Immich, Jellyfin, Navidrome, Gokapi"
     ip_address  = "192.168.1.12/24"
-    cores       = 3
     memory      = 1024
-    disk_size   = 20
+    # disk_size = 20 (utilise la valeur par défaut définie dans variables.tf)
   }
   apps = {
     vm_id       = 103
     name        = "srv-apps"
     description = "Gitea, CI/CD, Searxng, Radicale, Joplin, Shlink, Speedtest, Uptime-Kuma, Crafty"
     ip_address  = "192.168.1.13/24"
-    cores       = 3
-    memory      = 1024
-    disk_size   = 20
+    # memory et disk_size utilisent les valeurs par défaut
+    tags        = ["homelab", "apps"]
   }
 }
