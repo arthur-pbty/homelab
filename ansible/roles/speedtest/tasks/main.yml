@@ -1,0 +1,17 @@
+---
+- name: Create Speedtest directory
+  ansible.builtin.file:
+    path: /opt/speedtest
+    state: directory
+    mode: "0755"
+
+- name: Render Speedtest docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/speedtest/docker-compose.yml
+    mode: "0644"
+
+- name: Start Speedtest stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/speedtest
+    state: present

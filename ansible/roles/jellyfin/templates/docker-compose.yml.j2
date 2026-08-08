@@ -1,0 +1,18 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    expose: ["8096"]
+    volumes: ["./media:/data/media", "./config:/config"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.{{ homelab_domain }}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+    mem_limit: 512m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

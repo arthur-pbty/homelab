@@ -1,0 +1,17 @@
+services:
+  joplin:
+    image: joplin/server:latest
+    expose: ["22300"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.joplin.rule=Host(`joplin.{{ homelab_domain }}`)"
+      - "traefik.http.routers.joplin.entrypoints=websecure"
+      - "traefik.http.routers.joplin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.joplin.loadbalancer.server.port=22300"
+    mem_limit: 256m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

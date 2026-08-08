@@ -1,0 +1,17 @@
+---
+- name: Create Searxng directory
+  ansible.builtin.file:
+    path: /opt/searxng
+    state: directory
+    mode: "0755"
+
+- name: Render Searxng docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/searxng/docker-compose.yml
+    mode: "0644"
+
+- name: Start Searxng stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/searxng
+    state: present

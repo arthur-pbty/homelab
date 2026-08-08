@@ -1,0 +1,17 @@
+services:
+  radicale:
+    image: tomsquest/docker-radicale
+    expose: ["5232"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radicale.rule=Host(`radicale.{{ homelab_domain }}`)"
+      - "traefik.http.routers.radicale.entrypoints=websecure"
+      - "traefik.http.routers.radicale.tls.certresolver=letsencrypt"
+      - "traefik.http.services.radicale.loadbalancer.server.port=5232"
+    mem_limit: 64m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

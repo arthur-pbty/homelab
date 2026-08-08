@@ -1,0 +1,17 @@
+---
+- name: Create Joplin directory
+  ansible.builtin.file:
+    path: /opt/joplin
+    state: directory
+    mode: "0755"
+
+- name: Render Joplin docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/joplin/docker-compose.yml
+    mode: "0644"
+
+- name: Start Joplin stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/joplin
+    state: present

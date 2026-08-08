@@ -1,0 +1,31 @@
+---
+- name: Stop and disable systemd-resolved to free port 53
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+
+- name: Create a proper resolv.conf
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    mode: "0644"
+    content: |
+      nameserver 8.8.8.8
+      nameserver 1.1.1.1
+
+- name: Create Pi-hole directory
+  ansible.builtin.file:
+    path: /opt/dns
+    state: directory
+    mode: "0755"
+
+- name: Render Pi-hole docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/dns/docker-compose.yml
+    mode: "0644"
+
+- name: Start Pi-hole stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/dns
+    state: present

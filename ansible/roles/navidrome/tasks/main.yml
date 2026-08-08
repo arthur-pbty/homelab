@@ -1,0 +1,17 @@
+---
+- name: Create Navidrome directory
+  ansible.builtin.file:
+    path: /opt/navidrome
+    state: directory
+    mode: "0755"
+
+- name: Render Navidrome docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/navidrome/docker-compose.yml
+    mode: "0644"
+
+- name: Start Navidrome stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/navidrome
+    state: present

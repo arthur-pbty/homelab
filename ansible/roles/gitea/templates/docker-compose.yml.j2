@@ -1,0 +1,28 @@
+services:
+  gitea:
+    image: gitea/gitea:latest
+    ports: ["2222:22"]
+    expose: ["3000"]
+    volumes: ["./data:/data"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`gitea.{{ homelab_domain }}`)"
+      - "traefik.http.routers.gitea.entrypoints=websecure"
+      - "traefik.http.routers.gitea.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+    mem_limit: 256m
+    restart: unless-stopped
+  runner:
+    image: gitea/act_runner:latest
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000
+      - GITEA_RUNNER_REGISTRATION_TOKEN={{ gitea_runner_token }}
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    networks: [homelab_proxy]
+    mem_limit: 256m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

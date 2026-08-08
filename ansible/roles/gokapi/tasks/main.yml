@@ -1,0 +1,17 @@
+---
+- name: Create Gokapi directory
+  ansible.builtin.file:
+    path: /opt/gokapi
+    state: directory
+    mode: "0755"
+
+- name: Render Gokapi docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/gokapi/docker-compose.yml
+    mode: "0644"
+
+- name: Start Gokapi stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/gokapi
+    state: present

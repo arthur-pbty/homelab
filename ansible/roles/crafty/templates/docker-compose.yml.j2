@@ -1,0 +1,19 @@
+services:
+  crafty:
+    image: registry.gitlab.com/crafty-controller/crafty-4:latest
+    ports: ["8443:8443", "8123:8123", "25500-25600:25500-25600"]
+    expose: ["8000"]
+    volumes: ["./data:/crafty"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.crafty.rule=Host(`crafty.{{ homelab_domain }}`)"
+      - "traefik.http.routers.crafty.entrypoints=websecure"
+      - "traefik.http.routers.crafty.tls.certresolver=letsencrypt"
+      - "traefik.http.services.crafty.loadbalancer.server.port=8000"
+    mem_limit: 256m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true

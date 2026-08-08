@@ -1,0 +1,17 @@
+---
+- name: Create Jellyfin directory
+  ansible.builtin.file:
+    path: /opt/jellyfin
+    state: directory
+    mode: "0755"
+
+- name: Render Jellyfin docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/jellyfin/docker-compose.yml
+    mode: "0644"
+
+- name: Start Jellyfin stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/jellyfin
+    state: present

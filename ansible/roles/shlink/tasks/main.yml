@@ -1,0 +1,17 @@
+---
+- name: Create Shlink directory
+  ansible.builtin.file:
+    path: /opt/shlink
+    state: directory
+    mode: "0755"
+
+- name: Render Shlink docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/shlink/docker-compose.yml
+    mode: "0644"
+
+- name: Start Shlink stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/shlink
+    state: present

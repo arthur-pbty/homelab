@@ -1,0 +1,18 @@
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    expose: ["4533"]
+    volumes: ["./music:/music", "./data:/data"]
+    networks: [homelab_proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.navidrome.rule=Host(`navidrome.{{ homelab_domain }}`)"
+      - "traefik.http.routers.navidrome.entrypoints=websecure"
+      - "traefik.http.routers.navidrome.tls.certresolver=letsencrypt"
+      - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
+    mem_limit: 128m
+    restart: unless-stopped
+
+networks:
+  homelab_proxy:
+    external: true
